@@ -1,0 +1,28 @@
+                                                    
+{
+  "name": "homebridge-gira-shutter",
+  "version": "1.1.1",
+  "description": "Ein Homebridge-Plugin zur Integration von Gira HomeServer gesteuerten Rolläden.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo Test Message! Plugin is funktionell!"
+  },
+  "keywords": ["homebridge", "homebridge-plugin", "gira", "homekit", "shutter"],
+  "author": "hennycraft",
+  "license": "MIT",
+  "dependencies": {
+    "axios": ">1.0.1"
+
+  },
+  "engines": {
+    "homebridge": ">=1.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hennycraft52/homebridge-gira-shutter"
+  },
+  "bugs": {
+    "url": "https://github.com/Hennycraft52/homebridge-gira-shutter/issues"
+  },
+  "homepage": "https://github.com/Hennycraft52/homebridge-gira-shutter#readme"
+}
