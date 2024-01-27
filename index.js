@@ -1,107 +1,46 @@
+let Service, Characteristic;
+const Shutter = require('./lib/shutter');
 
-const { toggleShutter, getShutterStatus } = require('./lib/shutter');
-
-module.exports = (homebridge) => {
-    const Accessory = homebridge.hap.Accessory;
-    const Service = homebridge.hap.Service;
-    const Characteristic = homebridge.hap.Characteristic;
-
-    class ShutterAccessory {
-        constructor(log, config) {
-            this.log = log;
-            this.name = config.name;
-            this.ip = config.ip;
-            this.shutterId = config.shutterId;
-            this.username = config.username;
-            this.password = config.password;
-
-            this.service = new Service.WindowCovering(this.name);
-            this.lastKnownPosition = 0; // Speichern Sie die letzte bekannte Position
-
-            this.service
-                .getCharacteristic(Characteristic.CurrentPosition)
-                .on('get', this.getCurrentPosition.bind(this));
-
-            this.service
-                .getCharacteristic(Characteristic.TargetPosition)
-                .on('set', this.setTargetPosition.bind(this));
-
-            // Abrufen des aktuellen Status beim Start
-            this.getCurrentPosition((err, position) => {
-                if (!err) {
-                    this.service
-                        .getCharacteristic(Characteristic.CurrentPosition)
-                        .updateValue(position);
-                    this.lastKnownPosition = position;
-                }
-            });
-
-            // Aktualisieren Sie den Status alle 5 Sekunden
-            this.statusUpdateInterval = setInterval(() => {
-                this.getCurrentPosition((err, position) => {
-                    if (!err && this.lastKnownPosition !== position) {
-                        this.service
-                            .getCharacteristic(Characteristic.CurrentPosition)
-                            .updateValue(position);
-                        this.lastKnownPosition = position;
-                    }
-                });
-            }, 5000);
-        }
-
-        getCurrentPosition(callback) {
-            getShutterStatus(this.ip, this.shutterId, this.username, this.password)
-                .then((status) => {
-                    const position = status === 1 ? 100 : 0;
-                    callback(null, position);
-                })
-                .catch((error) => {
-                    this.log('Error getting shutter status:', error);
-                    callback(error);
-                });
-        }
-
-        setTargetPosition(value, callback) {
-            if (value !== this.lastKnownPosition) {
-                toggleShutter(this.ip, this.shutterId, this.username, this.password)
-                    .then(() => {
-                        setTimeout(() => {
-                            this.getCurrentPosition((err, newPosition) => {
-                                if (!err) {
-                                    this.service
-                                        .getCharacteristic(Characteristic.CurrentPosition)
-                                        .updateValue(newPosition);
-                                    this.service
-                                        .getCharacteristic(Characteristic.TargetPosition)
-                                        .updateValue(newPosition);
-                                    this.lastKnownPosition = newPosition;
-                                }
-                            });
-                        }, 1000);
-                        callback(null);
-                    })
-                    .catch((error) => {
-                        this.log('Error setting shutter position:', error);
-                        callback(error);
-                    });
-            } else {
-                callback(null);
-            }
-        }
-
-        getServices() {
-            return [this.service];
-        }
-    }
-
-    homebridge.registerAccessory('homebridge-shutter', 'ShutterV1', ShutterAccessory);
+module.exports = function(homebridge) {
+    Service = homebridge.hap.Service;
+    Characteristic = homebridge.hap.Characteristic;
+    homebridge.registerAccessory('homebridge-gira-shutter', 'Shutter', ShutterAccessory);
 };
 
+function ShutterAccessory(log, config) {
+    this.log = log;
+    this.shutter = new Shutter(config.ip, config.shutterid, config.username, config.password);
+}
 
+ShutterAccessory.prototype = {
+    getServices: function() {
+        let windowCoveringService = new Service.WindowCovering(this.name);
 
+        windowCoveringService
+            .getCharacteristic(Characteristic.CurrentPosition)
+            .on('get', this.getPosition.bind(this));
 
+        windowCoveringService
+            .getCharacteristic(Characteristic.TargetPosition)
+            .on('get', this.getPosition.bind(this))
+            .on('set', this.setPosition.bind(this));
 
+        return [windowCoveringService];
+    },
 
+    getPosition: function(callback) {
+        this.shutter.getStatus().then(status => {
+            callback(null, status ? 0 : 100); // 0 = geschlossen, 100 = geöffnet
+        }).catch(err => {
+            callback(err);
+        });
+    },
 
-
-
+    setPosition: function(value, callback) {
+        this.shutter.setStatus(value === 0 ? 1 : 0).then(() => { // 1 = geschlossen, 0 = geöffnet
+            callback(null);
+        }).catch(err => {
+            callback(err);
+        });
+    }
+};
