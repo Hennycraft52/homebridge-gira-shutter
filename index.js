@@ -4,7 +4,7 @@ const Shutter = require('./lib/shutter');
 module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
-    homebridge.registerAccessory('homebridge-gira-shutter', 'Shutter', ShutterAccessory);
+    homebridge.registerAccessory('homebridge-gira-shutter', 'ShutterV1', ShutterAccessory);
 };
 
 function ShutterAccessory(log, config) {
